@@ -8,8 +8,8 @@ function App() {
 
   // Vapi Configuration
   const VAPI_CONFIG = {
-    apiKey: "4297184c-7c0e-4c29-9053-884ef872ab9f",
-    assistant: "c3335315-7573-4ebe-a2e1-65ee6ae1e1b3",
+    apiKey: "ab881e10-c04f-4589-813f-ad14c3867be8",
+    assistant: "a0a24277-c280-4810-8624-ce1c59a0fc7b",
     config: {
       position: "bottom-right",
       offset: "40px",
