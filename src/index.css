@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ocultar el botón flotante de Vapi inicialmente */
+.vapi-hidden [id^="vapi-btn"],
+.vapi-hidden [id*="vapi-btn"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Asegurar que el botón de Vapi permanezca fijo en la esquina inferior derecha */
+[id^="vapi-btn"],
+[id*="vapi-btn"] {
+  position: fixed !important;
+  bottom: 40px !important;
+  right: 40px !important;
+  z-index: 9999 !important;
+}
