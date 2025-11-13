@@ -9,7 +9,11 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Vapi SDK -->
-    <script src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js" defer></script>
+    
+    <script type="module">
+      import { RetellWebClient } from "https://esm.sh/retell-client-js-sdk@2.0.7?bundle";
+      window.RetellWebClient = RetellWebClient;
+      console.log("Retell Web SDK cargado (esm.sh bundle).");
+    </script>
   </body>
 </html>

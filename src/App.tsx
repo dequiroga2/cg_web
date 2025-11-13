@@ -3,61 +3,65 @@ import { useState, useEffect } from 'react';
 
 function App() {
   const [showTerms, setShowTerms] = useState(true);
-  const [isVapiReady, setIsVapiReady] = useState(false);
-  const [vapiInitialized, setVapiInitialized] = useState(false);
-
-  // Vapi Configuration
-  const VAPI_CONFIG = {
-    apiKey: "ab881e10-c04f-4589-813f-ad14c3867be8",
-    assistant: "a0a24277-c280-4810-8624-ce1c59a0fc7b",
-    config: {
-      position: "bottom-right",
-      offset: "40px",
-      width: "60px",
-      height: "60px"
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRetellReady, setIsRetellReady] = useState(false);
+  
+  // Usamos 'any' para evitar pelear con TypeScript por el objeto window
+  const [retellClient, setRetellClient] = useState<any>(null);
 
   useEffect(() => {
-    // Agregar clase para ocultar el botón de Vapi inicialmente
-    document.body.classList.add('vapi-hidden');
-
-    // Wait for Vapi SDK to load
-    const checkVapiReady = setInterval(() => {
-      if (window.vapiSDK) {
-        console.log('Vapi SDK loaded successfully');
-        setIsVapiReady(true);
-        clearInterval(checkVapiReady);
+    // Revisar cada 100ms si el script del index.html ya cargó
+    const t = setInterval(() => {
+      if ((window as any).RetellWebClient) {
+        console.log('Retell SDK loaded successfully');
+        setIsRetellReady(true);
+        setRetellClient(new (window as any).RetellWebClient());
+        clearInterval(t);
+      } else {
+        console.log('Waiting for Retell SDK...');
       }
     }, 100);
 
-    return () => {
-      clearInterval(checkVapiReady);
-      document.body.classList.remove('vapi-hidden');
-    };
+    return () => clearInterval(t);
   }, []);
 
-  const handleAcceptTerms = () => {
-    if (!isVapiReady) {
-      alert('El SDK de Vapi aún no está listo. Por favor espera un momento.');
+  const handleAcceptTerms = async () => {
+    if (!isRetellReady || !retellClient) {
+      alert('El SDK de Retell aún no está listo. Por favor espera un momento.');
       return;
     }
+    
+    setIsLoading(true);
 
     try {
-      // Inicializar Vapi
-      window.vapiSDK?.run(VAPI_CONFIG);
-      setVapiInitialized(true);
-      
-      // Remover la clase que oculta el botón de Vapi
-      document.body.classList.remove('vapi-hidden');
-      
-      // Ocultar los términos
+      // 1. Pedir el token a tu backend
+      const response = await fetch('http://localhost:3001/register-call', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to register call');
+      }
+
+      // 2. Obtener el access_token
+      const data = await response.json();
+      const accessToken = data.access_token;
+
+      // 3. Iniciar la conversación
+      await retellClient.startCall({
+        accessToken: accessToken,
+        sampleRate: 24000, 
+      });
+
+      // 4. Ocultar los términos
       setShowTerms(false);
-      
-      console.log('Vapi initialized successfully');
-    } catch (error) {
-      console.error('Error initializing Vapi:', error);
-      alert('Error al inicializar el asistente. Por favor recarga la página.');
+      console.log('Retell conversation started');
+
+    } catch (error: any) {
+      console.error('Error starting Retell conversation:', error);
+      alert('Error al inicializar el asistente. Verifica que el backend esté corriendo.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -120,7 +124,6 @@ function App() {
                   <h2 className="text-lg md:text-xl font-bold text-slate-900 text-center mb-3">
                     Términos y Condiciones de Prueba
                   </h2>
-                  
                   <div className="space-y-2 text-slate-700 mb-4">
                     <p className="text-center text-sm">
                       <strong>Importante:</strong> Esta es una demostración del asistente de voz con IA.
@@ -152,16 +155,16 @@ function App() {
 
                   <button
                     onClick={handleAcceptTerms}
-                    disabled={!isVapiReady}
+                    disabled={!isRetellReady || isLoading}
                     className={`w-full py-3 px-4 rounded-xl font-semibold text-base transition-all duration-300 transform hover:scale-105 active:scale-95 ${
-                      isVapiReady
+                      (isRetellReady && !isLoading)
                         ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30'
                         : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                     }`}
                   >
-                    {isVapiReady ? 'Acepto y Continuar' : 'Cargando...'}
+                    {isLoading ? 'Conectando...' : (isRetellReady ? 'Acepto y Continuar' : 'Cargando SDK...')}
                   </button>
-                  
+
                   <p className="text-xs text-slate-500 text-center mt-2">
                     Al hacer clic confirmas que has leído y aceptado los términos.
                   </p>
@@ -181,7 +184,7 @@ function App() {
                   </h2>
                   
                   <p className="text-sm md:text-base text-slate-700 mb-3">
-                    El botón del asistente de voz está disponible en la esquina inferior derecha.
+                    El asistente de voz está conectado.
                   </p>
                   
                   <div className="bg-white rounded-lg p-3 border border-green-200">
@@ -189,10 +192,9 @@ function App() {
                       Instrucciones:
                     </p>
                     <ol className="text-left text-slate-600 space-y-1 text-xs md:text-sm">
-                      <li>1. Busca el botón flotante en la esquina inferior derecha</li>
-                      <li>2. Haz clic en el botón para iniciar la conversación</li>
-                      <li>3. Permite el acceso al micrófono cuando se solicite</li>
-                      <li>4. ¡Comienza a hablar con el asistente!</li>
+                      <li>1. Permite el acceso al micrófono cuando se solicite</li>
+                      <li>2. ¡Comienza a hablar con el asistente!</li>
+                      <li>3. Cierra esta pestaña o recarga la página para finalizar la llamada.</li>
                     </ol>
                   </div>
                 </div>
