@@ -35,9 +35,13 @@ function App() {
 
     try {
       // 1. Pedir el token a tu backend
-      const response = await fetch('http://localhost:3001/register-call', {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/register-call`,
+        {
+          method: 'POST',
+        }
+      );
+
 
       if (!response.ok) {
         throw new Error('Failed to register call');
